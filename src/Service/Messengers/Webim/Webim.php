@@ -216,6 +216,38 @@ class Webim implements OnlineConsultant
     }
 
     /**
+     * Получение параметров сообщения.
+     *
+     * @param string $param
+     * @param array $message
+     * @return mixed
+     */
+    public function getParamFromMessage($param, array $message)
+    {
+        switch($param) {
+            case 'created_at':
+                return $message['created_at'];
+            case 'who_send':
+                $types = [
+                    'client' => ['visitor', 'file_visitor', 'keyboard_response', 'apple_chat_response'],
+                    'operator' => ['operator', 'file_operator'],
+                ];
+
+                if(in_array($message['kind'], $types['client'])) {
+                    return 'client';
+                } elseif(in_array($message['kind'], $types['operator'])) {
+                    return 'operator';
+                } else {
+                    return 'system';
+                }
+            case 'operator':
+                return $message['operator_id'] ?? null;
+            default:
+                throw new Exception('Неизвестная переменная для получения из данных сообщения.');
+        }
+    }
+
+    /**
      * Получение диалога с клиентом.
      *
      * @param int $client_id
@@ -413,7 +445,7 @@ class Webim implements OnlineConsultant
      */
     public function getListOnlineOperatorsIds()
     {
-        $operators = $this->sendRequest('operators', []);
+        $operators = $this->getOperators();
 
         $online_operators_ids = [];
 
@@ -424,6 +456,16 @@ class Webim implements OnlineConsultant
         }
 
         return $online_operators_ids;
+    }
+
+    /**
+     * Получение списка операторов.
+     *
+     * @return array
+     */
+    public function getOperators()
+    {
+        return $this->sendRequest('operators', []);
     }
 
     /**
@@ -441,7 +483,27 @@ class Webim implements OnlineConsultant
         ];
 
         return (bool) $this->sendRequest('redirect_chat', $data);
+    }
 
+    /**
+     * Группировка диалогов по каналу общения.
+     *
+     * @param \Illuminate\Support\Collection $dialogs
+     * @return \Illuminate\Support\Collection
+     */
+    public function dialogsGroupByChannel(array $dialogs)
+    {
+        $channel_type_by_url = [
+            null => 'email',
+            'vsesdal.com' => 'site',
+            'https://telegram.org/' => 'telegram',
+            'https://vk.com/' => 'vk',
+            'https://www.viber.com/' => 'viber',
+        ];
+
+        return $dialogs->map(function($item) use($channel_type_by_url) {
+            return array_merge($item, ['channel' => $channel_type_by_url[$item['start_page']['url'] ?? null]]);
+        })->groupBy('channel');
     }
 
     /**

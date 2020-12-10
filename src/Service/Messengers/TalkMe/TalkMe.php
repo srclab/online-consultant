@@ -270,6 +270,27 @@ class TalkMe implements OnlineConsultant
     }
 
     /**
+     * Получение параметров сообщения.
+     *
+     * @param string $param
+     * @param array $message
+     * @return mixed
+     */
+    public function getParamFromMessage($param, array $message)
+    {
+        switch($param) {
+            case 'created_at':
+                return $message['dateTime'];
+            case 'who_send':
+                return $message['whoSend'];
+            case 'operator':
+                return $message['operator'] ?? null;
+            default:
+                throw new Exception('Неизвестная переменная для получения из данных сообщения.');
+        }
+    }
+
+    /**
      * Проверка фильтра пользователей по id на сайте.
      *
      * @param array $only_user_ids
@@ -381,7 +402,7 @@ class TalkMe implements OnlineConsultant
      */
     public function getListOnlineOperatorsIds()
     {
-        $result = $this->sendRequest('operator/getList');
+        $result = $this->getOperators();
 
         $online_operators_ids = [];
 
@@ -392,6 +413,16 @@ class TalkMe implements OnlineConsultant
         }
 
         return $online_operators_ids;
+    }
+
+    /**
+     * Получение списка операторов.
+     *
+     * @return array
+     */
+    public function getOperators()
+    {
+        return $this->sendRequest('getOperators');
     }
 
     /**
@@ -417,6 +448,17 @@ class TalkMe implements OnlineConsultant
         ];
 
         return (bool) $this->sendRequest('message/forward', $data);
+    }
+
+    /**
+     * Группировка диалогов по каналу общения.
+     *
+     * @param \Illuminate\Support\Collection $dialogs
+     * @return \Illuminate\Support\Collection
+     */
+    public function dialogsGroupByChannel(array $dialogs)
+    {
+        return $dialogs->groupBy('source.type.id');
     }
 
     /**

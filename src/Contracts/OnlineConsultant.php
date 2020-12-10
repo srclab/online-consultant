@@ -77,6 +77,15 @@ interface OnlineConsultant
     public function getParamFromDialog($param, array $dialog);
 
     /**
+     * Получение параметров сообщения.
+     *
+     * @param string $param
+     * @param array $message
+     * @return mixed
+     */
+    public function getParamFromMessage($param, array $message);
+
+    /**
      * Получение даты и времени последнего сообщения клиента или оператора в диалоге.
      *
      * @param array $dialog
@@ -125,6 +134,13 @@ interface OnlineConsultant
     public function getListOnlineOperatorsIds();
 
     /**
+     * Получение списка операторов.
+     *
+     * @return array
+     */
+    public function getOperators();
+
+    /**
      * Перевод чата на оператора.
      *
      * @param array $dialog
@@ -132,6 +148,14 @@ interface OnlineConsultant
      * @return bool
      */
     public function redirectDialogToOperator(array $dialog, $to_operator);
+
+    /**
+     * Перевод чата на оператора.
+     *
+     * @param \Illuminate\Support\Collection $dialogs
+     * @return \Illuminate\Support\Collection
+     */
+    public function dialogsGroupByChannel(array $dialogs);
 
     /**
      * Проверка наличия отдельного бота в мессенджере.
