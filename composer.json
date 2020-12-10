@@ -14,9 +14,6 @@
     "psr-4": {
       "SrcLab\\OnlineConsultant\\": "src/"
     },
-    "files": [
-      "src/Support/helpers.php"
-    ]
   },
   "extra": {
     "laravel": {
