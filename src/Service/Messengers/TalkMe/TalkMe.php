@@ -18,6 +18,13 @@ class TalkMe implements OnlineConsultant
     protected $config;
 
     /**
+     * Название онлайн-консультанта.
+     *
+     * @var string
+     */
+    protected $name = 'talk_me';
+
+    /**
      * TalkMe constructor.
      *
      * @param array $config
@@ -25,11 +32,11 @@ class TalkMe implements OnlineConsultant
      */
     public function __construct(array $config)
     {
-        if(empty($config['talk_me']) || empty($config['talk_me']['api_token']) || empty($config['talk_me']['default_operator'])) {
+        if(empty($config[$this->name]) || empty($config[$this->name]['api_token']) || empty($config[$this->name]['default_operator'])) {
             throw new \Exception('Не установлены конфигурационные данные для обращения к TalkMe');
         }
 
-        $this->config = $config['talk_me'];
+        $this->config = $config[$this->name];
     }
 
     /**
@@ -452,6 +459,17 @@ class TalkMe implements OnlineConsultant
     }
 
     /**
+     * Проверка находится ли диалог на боте.
+     *
+     * @param $dialog
+     * @return bool
+     */
+    public function isDialogOnTheBot($dialog)
+    {
+        return false;
+    }
+
+    /**
      * Закрытие чата.
      *
      * @param $client_id
@@ -471,6 +489,16 @@ class TalkMe implements OnlineConsultant
     public function isClientRedirectedToBot($dialog)
     {
         return false;
+    }
+
+    /**
+     * Получение названия текущего консультанта.
+     *
+     * @return string
+     */
+    public function getOnlineConsultantName()
+    {
+        return $this->name;
     }
 
     //****************************************************************

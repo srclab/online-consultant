@@ -18,6 +18,13 @@ class Webim implements OnlineConsultant
     protected $config;
 
     /**
+     * Название онлайн-консультанта.
+     *
+     * @var string
+     */
+    protected $name = 'talk_me';
+
+    /**
      * Webim constructor.
      *
      * @param array $config
@@ -25,11 +32,11 @@ class Webim implements OnlineConsultant
      */
     public function __construct(array $config)
     {
-        if (empty($config['webim']) || empty($config['webim']['subdomain']) || empty($config['webim']['api_token']) || empty($config['webim']['login']) || empty($config['webim']['password'])) {
+        if (empty($config[$this->name]) || empty($config[$this->name]['subdomain']) || empty($config[$this->name]['api_token']) || empty($config[$this->name]['login']) || empty($config[$this->name]['password'])) {
             throw new \Exception('Не установлены конфигурационные данные для обращения к Webim');
         }
 
-        $this->config = $config['webim'];
+        $this->config = $config[$this->name];
     }
 
     /**
@@ -477,6 +484,17 @@ class Webim implements OnlineConsultant
     }
 
     /**
+     * Проверка находится ли диалог на боте.
+     *
+     * @param $dialog
+     * @return bool
+     */
+    public function isDialogOnTheBot($dialog)
+    {
+        return $dialog['operator_id'] == $this->config['bot_operator_id'];
+    }
+
+    /**
      * Закрытие чата.
      *
      * @param $client_id
@@ -521,6 +539,16 @@ class Webim implements OnlineConsultant
         }
 
         return false;
+    }
+
+    /**
+     * Получение названия текущего консультанта.
+     *
+     * @return string
+     */
+    public function getOnlineConsultantName()
+    {
+        return $this->name;
     }
 
     //****************************************************************

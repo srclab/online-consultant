@@ -148,6 +148,14 @@ interface OnlineConsultant
     public function isCloseChatFunction();
 
     /**
+     * Проверка находится ли диалог на боте.
+     *
+     * @param $dialog
+     * @return bool
+     */
+    public function isDialogOnTheBot($dialog);
+
+    /**
      * Закрытие чата.
      *
      * @param $client_id
@@ -162,4 +170,11 @@ interface OnlineConsultant
      * @return bool
      */
     public function isClientRedirectedToBot($dialog);
+
+    /**
+     * Получение названия текущего консультанта.
+     *
+     * @return string
+     */
+    public function getOnlineConsultantName();
 }
