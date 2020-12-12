@@ -2,6 +2,8 @@
 
 namespace SrcLab\OnlineConsultant\Contracts;
 
+use Illuminate\Support\Collection;
+
 interface OnlineConsultant
 {
     /**
@@ -155,7 +157,7 @@ interface OnlineConsultant
      * @param \Illuminate\Support\Collection $dialogs
      * @return \Illuminate\Support\Collection
      */
-    public function dialogsGroupByChannel(array $dialogs);
+    public function dialogsGroupByChannel(Collection $dialogs);
 
     /**
      * Проверка наличия отдельного бота в мессенджере.

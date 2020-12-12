@@ -2,6 +2,7 @@
 
 namespace SrcLab\OnlineConsultant\Services\Messengers\TalkMe;
 
+use Illuminate\Support\Collection;
 use SrcLab\OnlineConsultant\Contracts\OnlineConsultant;
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
@@ -50,11 +51,13 @@ class TalkMe implements OnlineConsultant
         /**
          * Фомирование временных рамок в нужном формате.
          * Если указанный период больше 14 дней, разбивка на подзапросы.
+         * @var \Carbon\Carbon $now
          * @var \Carbon\Carbon $date_start
          * @var \Carbon\Carbon $date_end
          */
-        $date_start = $period[0] ?? Carbon::now()->startOfDay();
-        $date_end = $period[1] ?? Carbon::now();
+        $now = Carbon::now();
+        $date_start = $period[0] ?? $now->startOfDay();
+        $date_end = $period[1] ?? $now->copy()->endOfDay();
 
         if($date_end->diffInDays($date_start) <= 14) {
 
@@ -203,11 +206,13 @@ class TalkMe implements OnlineConsultant
         /**
          * Фомирование временных рамок в нужном формате.
          *
+         * @var \Carbon\Carbon $now
          * @var \Carbon\Carbon $date_start
          * @var \Carbon\Carbon $date_end
          */
-        $date_start = $period[0] ?? Carbon::now()->startOfDay();
-        $date_end = $period[1] ?? Carbon::now();
+        $now = Carbon::now();
+        $date_start = $period[0] ?? $now->startOfDay();
+        $date_end = $period[1] ?? $now->copy()->endOfDay();
 
         $result = $this->getDialogsByPeriod([
             'period' => [$date_start, $date_end],
@@ -280,7 +285,7 @@ class TalkMe implements OnlineConsultant
     {
         switch($param) {
             case 'created_at':
-                return $message['dateTime'];
+                return Carbon::parse($message['dateTime']);
             case 'who_send':
                 return $message['whoSend'];
             case 'operator':
@@ -392,7 +397,7 @@ class TalkMe implements OnlineConsultant
             $i--;
         }
 
-        return Carbon::parse($message['dateTime']);
+        return $this->getParamFromMessage('created_at', $message);
     }
 
     /**
@@ -402,11 +407,11 @@ class TalkMe implements OnlineConsultant
      */
     public function getListOnlineOperatorsIds()
     {
-        $result = $this->getOperators();
+        $operators = $this->getOperators();
 
         $online_operators_ids = [];
 
-        foreach($result['operators'] as $operator) {
+        foreach($operators as $operator) {
             if($operator['statusId'] == 1) {
                 $online_operators_ids[] = $operator['login'];
             }
@@ -422,7 +427,9 @@ class TalkMe implements OnlineConsultant
      */
     public function getOperators()
     {
-        return $this->sendRequest('getOperators');
+        $result = $this->sendRequest('getOperators');
+
+        return $result['operators'];
     }
 
     /**
@@ -456,7 +463,7 @@ class TalkMe implements OnlineConsultant
      * @param \Illuminate\Support\Collection $dialogs
      * @return \Illuminate\Support\Collection
      */
-    public function dialogsGroupByChannel(array $dialogs)
+    public function dialogsGroupByChannel(Collection $dialogs)
     {
         return $dialogs->groupBy('source.type.id');
     }
@@ -475,8 +482,8 @@ class TalkMe implements OnlineConsultant
 
         $messages = $messages->where('whoSend', 'operator');
 
-        return $messages->groupBy(function ($value, $key) {
-            return Carbon::parse($value['dateTime'])->toDateString();
+        return $messages->groupBy(function ($message, $key) {
+            return $this->getParamFromMessage('created_at', $message)->toDateString();
         });
     }
 

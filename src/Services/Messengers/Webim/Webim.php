@@ -2,6 +2,7 @@
 
 namespace SrcLab\OnlineConsultant\Services\Messengers\Webim;
 
+use Illuminate\Support\Collection;
 use SrcLab\OnlineConsultant\Contracts\OnlineConsultant;
 use Carbon\Carbon;
 use Illuminate\Support\Arr;
@@ -22,7 +23,14 @@ class Webim implements OnlineConsultant
      *
      * @var string
      */
-    protected $name = 'talk_me';
+    protected $name = 'webim';
+
+    /**
+     * Временная зона сервера.
+     *
+     * @var string
+     */
+    protected $server_time_zone;
 
     /**
      * Webim constructor.
@@ -37,6 +45,7 @@ class Webim implements OnlineConsultant
         }
 
         $this->config = $config[$this->name];
+        $this->server_time_zone = date_default_timezone_get();
     }
 
     /**
@@ -226,7 +235,7 @@ class Webim implements OnlineConsultant
     {
         switch($param) {
             case 'created_at':
-                return $message['created_at'];
+                return Carbon::parse($message['created_at'])->setTimezone($this->server_time_zone);
             case 'who_send':
                 $types = [
                     'client' => ['visitor', 'file_visitor', 'keyboard_response', 'apple_chat_response'],
@@ -259,11 +268,13 @@ class Webim implements OnlineConsultant
         /**
          * Фомирование временных рамок в нужном формате.
          *
+         * @var \Carbon\Carbon $now
          * @var \Carbon\Carbon $date_start
          * @var \Carbon\Carbon $date_end
          */
-        $date_start = $period[0] ?? Carbon::now()->startOfDay();
-        $date_end = $period[1] ?? Carbon::now();
+        $now = Carbon::now();
+        $date_start = $period[0] ?? $now->startOfDay();
+        $date_end = $period[1] ?? $now->copy()->endOfDay();
 
         $dialog = $this->sendRequest("chat", ['id' => $client_id]);
 
@@ -271,11 +282,13 @@ class Webim implements OnlineConsultant
         $all_messages = $dialog['chat']['messages'];
 
         foreach($all_messages as $key=>$message) {
-            if(Carbon::parse($message['created_at']) > $date_end) {
+            $created_at = $this->getParamFromMessage('created_at', $message);
+
+            if($created_at > $date_end) {
                 break;
             }
 
-            if(in_array($message['kind'], ['visitor', 'operator', 'keyboard', 'keyboard_response', 'info']) && Carbon::parse($message['created_at']) >= $date_start) {
+            if(in_array($message['kind'], ['visitor', 'operator', 'keyboard', 'keyboard_response', 'info']) && $created_at >= $date_start) {
                 $messages[] = $message;
             }
         }
@@ -302,7 +315,7 @@ class Webim implements OnlineConsultant
          */
         $now = Carbon::now();
         $date_start = $period[0] ?? $now->startOfDay();
-        $date_end = $period[1] ?? $now->endOfDay();
+        $date_end = $period[1] ?? $now->copy()->endOfDay();
 
         $date_start_microseconds = $date_start->timestamp * 1000000;
         $date_end_microseconds = $date_end->timestamp * 1000000;
@@ -326,9 +339,9 @@ class Webim implements OnlineConsultant
             $messages = [];
 
             foreach($chat['messages'] as $message) {
-                $message['created_at'] = Carbon::parse($message['created_at']);
+                $created_at = $this->getParamFromMessage('created_at', $message);
 
-                if ($message['created_at'] >= $date_start && $message['created_at'] <= $date_end) {
+                if ($created_at >= $date_start && $created_at <= $date_end) {
                     $messages[] = $message;
                 }
             }
@@ -435,7 +448,7 @@ class Webim implements OnlineConsultant
             $i--;
         }
 
-        return Carbon::parse($message['created_at']);
+        return $this->getParamFromMessage('created_at', $message);
     }
 
     /**
@@ -491,18 +504,19 @@ class Webim implements OnlineConsultant
      * @param \Illuminate\Support\Collection $dialogs
      * @return \Illuminate\Support\Collection
      */
-    public function dialogsGroupByChannel(array $dialogs)
+    public function dialogsGroupByChannel(Collection $dialogs)
     {
-        $channel_type_by_url = [
-            null => 'email',
-            'vsesdal.com' => 'site',
-            'https://telegram.org/' => 'telegram',
-            'https://vk.com/' => 'vk',
-            'https://www.viber.com/' => 'viber',
-        ];
+        return $dialogs->map(function($item) {
 
-        return $dialogs->map(function($item) use($channel_type_by_url) {
-            return array_merge($item, ['channel' => $channel_type_by_url[$item['start_page']['url'] ?? null]]);
+            if(empty($item['start_page']['url'])) {
+                $item['channel'] = 'email';
+            } elseif(preg_match('/(vk|telegram|viber)/', $item['start_page']['url'], $channel)) {
+                $item['channel'] = $channel[1];
+            } else {
+                $item['channel'] = 'site';
+            }
+
+            return $item;
         })->groupBy('channel');
     }
 
@@ -520,8 +534,8 @@ class Webim implements OnlineConsultant
 
         $messages = $messages->where('kind', 'operator');
 
-        return $messages->groupBy(function ($value, $key) {
-            return Carbon::parse($value['created_at'])->toDateString();
+        return $messages->groupBy(function ($message, $key) {
+            return $this->getParamFromMessage('created_at', $message)->toDateString();
         });
     }
 
