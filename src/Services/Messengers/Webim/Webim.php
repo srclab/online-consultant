@@ -478,7 +478,16 @@ class Webim implements OnlineConsultant
      */
     public function getOperators()
     {
-        return $this->sendRequest('operators', []);
+        $operators = [];
+        $staffs = $this->sendRequest('operators', []);
+
+        foreach($staffs as $staff) {
+            if(in_array('operator', $staff['roles'])) {
+                $operators[] = $staff;
+            }
+        }
+
+        return $operators;
     }
 
     /**
