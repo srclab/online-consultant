@@ -30,7 +30,7 @@ class OnlineConsultantServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        $config = array_merge(config('online_consultant'), app_config('online_consultant'));
+        $config = array_merge(config('online_consultant'), app_config('online_consultant') ?? []);
 
         $this->app->singleton(\SrcLab\OnlineConsultant\Contracts\OnlineConsultant::class, function($app) use($config)
         {
