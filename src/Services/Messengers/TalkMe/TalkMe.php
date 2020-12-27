@@ -607,7 +607,7 @@ class TalkMe implements OnlineConsultant
             ]);
 
         } else {
-            throw new Exception("[Webim] Неизвестный запрос к Talk Me ( $api_method )");
+            throw new Exception("[Talk Me] Неизвестный запрос к Talk Me ( $api_method )");
         }
 
         $response = curl_exec($ch);

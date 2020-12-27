@@ -181,12 +181,12 @@ class Webim implements OnlineConsultant
                 }
 
                 if($message['kind'] == 'keyboard_response') {
-                    $message_text = $message['data']['button']['text'];
-                } else {
-                    $message_text = $message['text'];
+                    return $message['data']['button']['text'];
+                } elseif(!empty($message['text'])) {
+                   return $message['text'];
                 }
 
-                return empty($message_text) ? null : $message_text;
+                return null;
             case 'messages':
                 if($data['event'] == 'new_chat') {
                     return $data['messages'] ?? null;
