@@ -170,9 +170,9 @@ class Webim implements OnlineConsultant
                     return $data['chat_id'] ?? null;
                 }
             case 'message_text':
-                if($data['event'] == 'new_chat') {
+                if($data['event'] == 'new_chat' && !empty($data['messages'])) {
                     $message = array_pop($data['messages']);
-                } else {
+                } elseif(!empty($data['message'])) {
                     $message = $data['message'];
                 }
 
