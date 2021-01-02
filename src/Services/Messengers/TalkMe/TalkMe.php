@@ -535,7 +535,18 @@ class TalkMe implements OnlineConsultant
      * @param array $dialog
      * @return bool
      */
-    public function isClientRedirectedToBot($dialog)
+    public function isClientRedirectedToBot(array $dialog)
+    {
+        return false;
+    }
+
+    /**
+     * Проверка был ли чат закрыт.
+     *
+     * @param array $dialog
+     * @return bool
+     */
+    public function isChatClosed(array $dialog)
     {
         return false;
     }
