@@ -64,6 +64,10 @@ class Webim implements OnlineConsultant
             return false;
         }
 
+        if($data['event'] == 'message_updated') {
+            return false;
+        }
+
         /**
          * TODO: сделано для проверки, удалить при запуске на прод.
          */
@@ -81,11 +85,6 @@ class Webim implements OnlineConsultant
 
             return false;
         }
-
-        /**
-         * TODO: убрать после проверки.
-         */
-        Log::debug('Хук: ', $data);
 
         /**
          * Проверка наличия сообщения.
@@ -308,9 +307,6 @@ class Webim implements OnlineConsultant
                 break;
             }
 
-            /**
-             * TODO: в методе указаны е все типы сообщений, нужно учесть что человек может прислать файл и это нужно считать за ответ
-             */
             if(in_array($message['kind'], ['visitor', 'operator', 'keyboard', 'keyboard_response', 'info', 'file_operator', 'file_visitor']) && $created_at >= $date_start) {
                 $messages[] = $message;
             }
