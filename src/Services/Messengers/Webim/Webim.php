@@ -69,15 +69,6 @@ class Webim implements OnlineConsultant
         }
 
         /**
-         * TODO: сделано для проверки, удалить при запуске на прод.
-         */
-        if($data['event'] == 'new_chat') {
-            if(strstr($data['visitor']['fields']['name'], 'Test4556') === false) {
-                return false;
-            }
-        }
-
-        /**
          * Проверка секретки.
          */
         if (! $this->checkSecret($data['secretKey'] ?? null)) {
@@ -380,13 +371,9 @@ class Webim implements OnlineConsultant
      */
     public function findMessageKey($select_message, array $messages)
     {
-        /**
-         * TODO: вернуть break; после проверки.
-         */
         foreach ($messages as $key => $message) {
             if (preg_match('/' . $select_message . '/iu', $this->deleteControlCharactersAndSpaces($message))) {
                 $message_id = $key;
-                //break;
             }
         }
 

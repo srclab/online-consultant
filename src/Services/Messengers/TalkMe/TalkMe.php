@@ -323,13 +323,9 @@ class TalkMe implements OnlineConsultant
      */
     public function findMessageKey($select_message, array $messages)
     {
-        /**
-         * TODO: вернуть break; после проверки.
-         */
         foreach ($messages as $key => $message) {
             if (preg_match('/' . $select_message . '/iu', $this->deleteControlCharactersAndSpaces($message))) {
                 $message_id = $key;
-                //break;
             }
         }
 
