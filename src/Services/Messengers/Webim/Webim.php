@@ -222,6 +222,14 @@ class Webim implements OnlineConsultant
                     }
                 }
 
+                /**
+                 * TODO: удалить после решения ошибки с пустым оператором.
+                 */
+                if(empty($dialog['operator_id'])) {
+                    Log::error('[Webim] У диалога отсутствует оператор.', $dialog);
+                    return null;
+                }
+
                 return $dialog['operator_id'];
 
             default:
@@ -487,9 +495,11 @@ class Webim implements OnlineConsultant
         $operators = [];
         $staffs = $this->sendRequest('operators', []);
 
-        foreach($staffs as $staff) {
-            if(in_array('operator', $staff['roles'])) {
-                $operators[] = $staff;
+        if(!empty($staffs)) {
+            foreach ($staffs as $staff) {
+                if (in_array('operator', $staff['roles'])) {
+                    $operators[] = $staff;
+                }
             }
         }
 
