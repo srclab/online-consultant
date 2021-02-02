@@ -80,9 +80,7 @@ class Webim implements OnlineConsultant
         /**
          * Проверка наличия сообщения.
          */
-        if((in_array($data['event'], ['message_updated', 'new_message']) && empty($data['message']))
-            || ($data['event'] == 'new_chat' && empty($data['messages']))
-        ) {
+        if(in_array($data['event'], ['message_updated', 'new_message']) && empty($data['message'])) {
             Log::error('[SrcLab\OnlineConsultant] Сообщение не получено.', $data);
             return false;
         }
