@@ -262,6 +262,14 @@ class Webim implements OnlineConsultant
                 }
             case 'operator':
                 return $message['operator_id'] ?? null;
+            case 'message_text':
+                if ($message['kind'] == 'visitor') {
+                    return $message['message'] ?? $message['text'];
+                } elseif ($message['kind'] == 'keyboard_response') {
+                    return $message['data']['button']['text'];
+                }
+
+                return null;
             default:
                 throw new Exception('Неизвестная переменная для получения из данных сообщения.');
         }
