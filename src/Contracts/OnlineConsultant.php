@@ -152,7 +152,7 @@ interface OnlineConsultant
     public function redirectDialogToOperator(array $dialog, $to_operator);
 
     /**
-     * Перевод чата на оператора.
+     * Группировка диалогов по каналу общения.
      *
      * @param \Illuminate\Support\Collection $dialogs
      * @return \Illuminate\Support\Collection
@@ -195,7 +195,15 @@ interface OnlineConsultant
      * @param array $dialog
      * @return bool
      */
-    public function isClientRedirectedToBot($dialog);
+    public function isClientRedirectedToBot(array $dialog);
+
+    /**
+     * Проверка был ли чат закрыт.
+     *
+     * @param array $dialog
+     * @return bool
+     */
+    public function isChatClosed(array $dialog);
 
     /**
      * Получение названия текущего консультанта.

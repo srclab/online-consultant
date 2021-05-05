@@ -323,13 +323,9 @@ class TalkMe implements OnlineConsultant
      */
     public function findMessageKey($select_message, array $messages)
     {
-        /**
-         * TODO: вернуть break; после проверки.
-         */
         foreach ($messages as $key => $message) {
             if (preg_match('/' . $select_message . '/iu', $this->deleteControlCharactersAndSpaces($message))) {
                 $message_id = $key;
-                //break;
             }
         }
 
@@ -535,7 +531,18 @@ class TalkMe implements OnlineConsultant
      * @param array $dialog
      * @return bool
      */
-    public function isClientRedirectedToBot($dialog)
+    public function isClientRedirectedToBot(array $dialog)
+    {
+        return false;
+    }
+
+    /**
+     * Проверка был ли чат закрыт.
+     *
+     * @param array $dialog
+     * @return bool
+     */
+    public function isChatClosed(array $dialog)
     {
         return false;
     }

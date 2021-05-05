@@ -59,17 +59,13 @@ class Webim implements OnlineConsultant
         /**
          * Проверка что вебхук сообщает о новом сообщении.
          */
-        if(empty($data['event']) || !in_array($data['event'], ['new_message', 'new_chat'])) {
+        if(empty($data['event']) || !in_array($data['event'], ['new_message', 'new_chat', 'message_updated'])) {
+            Log::error('[SrcLab\OnlineConsultant] Неизвестый тип события.', $data);
             return false;
         }
 
-        /**
-         * TODO: сделано для проверки, удалить при запуске на прод.
-         */
-        if($data['event'] == 'new_chat') {
-            if(strstr($data['visitor']['fields']['name'], 'Test4556') === false) {
-                return false;
-            }
+        if($data['event'] == 'message_updated') {
+            return false;
         }
 
         /**
@@ -84,9 +80,8 @@ class Webim implements OnlineConsultant
         /**
          * Проверка наличия сообщения.
          */
-        if (empty($this->getParamFromDataWebhook('message_text', $data))) {
+        if(in_array($data['event'], ['message_updated', 'new_message']) && empty($data['message'])) {
             Log::error('[SrcLab\OnlineConsultant] Сообщение не получено.', $data);
-
             return false;
         }
 
@@ -218,7 +213,23 @@ class Webim implements OnlineConsultant
             case 'search_id':
                 return $dialog['id'];
             case 'operator_id':
+                if(!empty($dialog['state_history'])) {
+                    $last_state = array_pop($dialog['state_history']);
+                    if(!empty($last_state['operator_id'])) {
+                        return $last_state['operator_id'];
+                    }
+                }
+
+                /**
+                 * TODO: удалить после решения ошибки с пустым оператором.
+                 */
+                if(empty($dialog['operator_id'])) {
+                    Log::error('[Webim] У диалога отсутствует оператор.', $dialog);
+                    return null;
+                }
+
                 return $dialog['operator_id'];
+
             default:
                 throw new Exception('Неизвестная переменная для получения из данных диалога.');
         }
@@ -251,6 +262,14 @@ class Webim implements OnlineConsultant
                 }
             case 'operator':
                 return $message['operator_id'] ?? null;
+            case 'message_text':
+                if ($message['kind'] == 'visitor') {
+                    return $message['message'] ?? $message['text'];
+                } elseif ($message['kind'] == 'keyboard_response') {
+                    return $message['data']['button']['text'];
+                }
+
+                return null;
             default:
                 throw new Exception('Неизвестная переменная для получения из данных сообщения.');
         }
@@ -278,6 +297,10 @@ class Webim implements OnlineConsultant
 
         $dialog = $this->sendRequest("chat", ['id' => $client_id]);
 
+        if(empty($dialog['chat'])) {
+            return [];
+        }
+
         $messages = [];
         $all_messages = $dialog['chat']['messages'];
 
@@ -288,7 +311,7 @@ class Webim implements OnlineConsultant
                 break;
             }
 
-            if(in_array($message['kind'], ['visitor', 'operator', 'keyboard', 'keyboard_response', 'info']) && $created_at >= $date_start) {
+            if(in_array($message['kind'], ['visitor', 'operator', 'keyboard', 'keyboard_response', 'info', 'file_operator', 'file_visitor']) && $created_at >= $date_start) {
                 $messages[] = $message;
             }
         }
@@ -361,13 +384,9 @@ class Webim implements OnlineConsultant
      */
     public function findMessageKey($select_message, array $messages)
     {
-        /**
-         * TODO: вернуть break; после проверки.
-         */
         foreach ($messages as $key => $message) {
             if (preg_match('/' . $select_message . '/iu', $this->deleteControlCharactersAndSpaces($message))) {
                 $message_id = $key;
-                //break;
             }
         }
 
@@ -443,7 +462,7 @@ class Webim implements OnlineConsultant
         $i = count($dialog['messages'])-1;
         $message = $dialog['messages'][$i];
 
-        while($i >= 0 && !in_array($dialog['messages'][$i]['kind'], ['visitor', 'file_visitor', 'keyboard_response', 'operator'])) {
+        while($i >= 0 && !in_array($dialog['messages'][$i]['kind'], ['visitor', 'file_visitor', 'keyboard_response', 'operator', 'file_operator'])) {
             $message = $dialog['messages'][$i];
             $i--;
         }
@@ -481,9 +500,11 @@ class Webim implements OnlineConsultant
         $operators = [];
         $staffs = $this->sendRequest('operators', []);
 
-        foreach($staffs as $staff) {
-            if(in_array('operator', $staff['roles'])) {
-                $operators[] = $staff;
+        if(!empty($staffs)) {
+            foreach ($staffs as $staff) {
+                if (in_array('operator', $staff['roles'])) {
+                    $operators[] = $staff;
+                }
             }
         }
 
@@ -539,9 +560,10 @@ class Webim implements OnlineConsultant
     {
         $messages = array_reduce(Arr::pluck($dialogs, 'messages'), 'array_merge', []);
 
+        /** @var \Illuminate\Support\Collection $messages */
         $messages = collect($messages);
 
-        $messages = $messages->where('kind', 'operator');
+        $messages = $messages->whereIn('kind', ['operator', 'file_operator']);
 
         return $messages->groupBy(function ($message, $key) {
             return $this->getParamFromMessage('created_at', $message)->toDateString();
@@ -576,7 +598,7 @@ class Webim implements OnlineConsultant
      */
     public function isDialogOnTheBot($dialog)
     {
-        return $dialog['operator_id'] == $this->config['bot_operator_id'];
+        return $this->getParamFromDialog('operator_id', $dialog) == $this->config['bot_operator_id'];
     }
 
     /**
@@ -600,7 +622,7 @@ class Webim implements OnlineConsultant
      * @param array $dialog
      * @return bool
      */
-    public function isClientRedirectedToBot($dialog)
+    public function isClientRedirectedToBot(array $dialog)
     {
         $messages = $dialog['messages'];
 
@@ -621,6 +643,27 @@ class Webim implements OnlineConsultant
             }
 
             break;
+        }
+
+        return false;
+    }
+
+    /**
+     * Проверка был ли чат закрыт.
+     *
+     * @param array $dialog
+     * @return bool
+     */
+    public function isChatClosed(array $dialog)
+    {
+        if(empty($dialog['state_history'])) {
+            return false;
+        }
+
+        $last_state = array_pop($dialog['state_history']);
+
+        if(in_array($last_state['state'], ['closed', 'closed_by_operator', 'deleted'])) {
+            return true;
         }
 
         return false;
