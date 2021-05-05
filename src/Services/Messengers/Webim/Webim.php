@@ -298,7 +298,6 @@ class Webim implements OnlineConsultant
         $dialog = $this->sendRequest("chat", ['id' => $client_id]);
 
         if(empty($dialog['chat'])) {
-            Log::error("[Webim] Диалога с ID {$client_id} не существует.");
             return [];
         }
 
